@@ -40,28 +40,6 @@ resource "azurerm_public_ip" "terraform_rg" {
   }
 }
 
-resource "azurerm_network_interface" "terraform_rg" {
-  name                = "terraform_net_interface"
-  location            = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name = "${azurerm_resource_group.terraform_rg.name}"
-
-  ip_configuration {
-    name                          = "terraform_ip_conf"
-    subnet_id                     = "${azurerm_subnet.terraform_rg.id}"
-    private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${azurerm_public_ip.terraform_rg.id}"
-  }
-}
-
-resource "azurerm_managed_disk" "terraform_rg" {
-  name                 = "terraform_datadisk_existing"
-  location             = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name  = "${azurerm_resource_group.terraform_rg.name}"
-  storage_account_type = "Premium_LRS"
-  create_option        = "Empty"
-  disk_size_gb         = "260"
-}
-
 resource "azurerm_network_security_group" "terraform_rg" {
   name                = "terraform_security_group"
   location            = "${azurerm_resource_group.terraform_rg.location}"
@@ -82,6 +60,29 @@ resource "azurerm_network_security_group" "terraform_rg" {
   tags {
     environment = "staging"
   }
+}
+
+resource "azurerm_network_interface" "terraform_rg" {
+  name                = "terraform_net_interface"
+  location            = "${azurerm_resource_group.terraform_rg.location}"
+  resource_group_name = "${azurerm_resource_group.terraform_rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.terraform_rg.id}"
+
+  ip_configuration {
+    name                          = "terraform_ip_conf"
+    subnet_id                     = "${azurerm_subnet.terraform_rg.id}"
+    private_ip_address_allocation = "dynamic"
+    public_ip_address_id          = "${azurerm_public_ip.terraform_rg.id}"
+  }
+}
+
+resource "azurerm_managed_disk" "terraform_rg" {
+  name                 = "terraform_datadisk_existing"
+  location             = "${azurerm_resource_group.terraform_rg.location}"
+  resource_group_name  = "${azurerm_resource_group.terraform_rg.name}"
+  storage_account_type = "Premium_LRS"
+  create_option        = "Empty"
+  disk_size_gb         = "260"
 }
 
 resource "azurerm_virtual_machine" "terraform_rg" {
