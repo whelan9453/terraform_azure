@@ -57,6 +57,30 @@ resource "azurerm_network_security_group" "terraform_rg" {
     destination_address_prefix = "*"
   }
 
+  security_rule {
+    name                       = "strongswan1"
+    priority                   = 1000
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Udp"
+    source_port_range          = "*"
+    destination_port_range     = "500"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "strongswan2"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Udp"
+    source_port_range          = "*"
+    destination_port_range     = "4500"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
   tags {
     environment = "staging"
   }
