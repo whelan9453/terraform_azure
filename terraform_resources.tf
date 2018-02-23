@@ -149,7 +149,6 @@ resource "azurerm_virtual_machine" "terraform_rg" {
 
   os_profile_linux_config {
     # disable_password_authentication = false
-    
     disable_password_authentication = true
     ssh_keys = [{
       path     = "/home/alis/.ssh/authorized_keys"
@@ -159,5 +158,16 @@ resource "azurerm_virtual_machine" "terraform_rg" {
 
   tags {
     environment = "staging"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sgdisk --new=0:0:0 /dev/sdc",
+      "mkfs.xfs -f /dev/sdc",
+      "printf "[Unit]\nDescription=Mount for data storage\n[Mount]\nWhat=/dev/sdc\nWhere=/mnt/data\nType=xfs\nOptions=noatime\n[Install]\nWantedBy = multi-user.target \n" | sudo tee /etc/systemd/system/mnt-data.mount",
+      "systemctl start mnt-data.mount",
+      "systemctl start mnt-data.mount",
+      "systemctl enable mnt-data.mount"
+    ]
   }
 }
