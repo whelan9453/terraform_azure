@@ -164,7 +164,7 @@ resource "azurerm_virtual_machine" "terraform_rg" {
     inline = [
       "sgdisk --new=0:0:0 /dev/sdc",
       "mkfs.xfs -f /dev/sdc",
-      "printf "[Unit]\nDescription=Mount for data storage\n[Mount]\nWhat=/dev/sdc\nWhere=/mnt/data\nType=xfs\nOptions=noatime\n[Install]\nWantedBy = multi-user.target \n" | sudo tee /etc/systemd/system/mnt-data.mount",
+      "printf '[Unit]\nDescription=Mount for data storage\n[Mount]\nWhat=/dev/sdc\nWhere=/mnt/data\nType=xfs\nOptions=noatime\n[Install]\nWantedBy = multi-user.target \n' | sudo tee /etc/systemd/system/mnt-data.mount",
       "systemctl start mnt-data.mount",
       "systemctl start mnt-data.mount",
       "systemctl enable mnt-data.mount"
