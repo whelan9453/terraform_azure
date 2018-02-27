@@ -97,6 +97,9 @@ resource "azurerm_managed_disk" "terraform_rg" {
   disk_size_gb         = "260"
 }
 
+variable "vm_admin_user" {}
+variable "vm_admin_pwd" {}
+
 resource "azurerm_virtual_machine" "terraform_rg" {
   name                  = "terraform_vm"
   location              = "${azurerm_resource_group.terraform_rg.location}"
@@ -142,16 +145,16 @@ resource "azurerm_virtual_machine" "terraform_rg" {
   }
 
   os_profile {
-    computer_name  = "terraform-alis"
-    admin_username = "alis"
-    # admin_password = "terraform.ALIS"
+    computer_name  = "terraform-vpn"
+    admin_username = "${var.vm_admin_user}"
+    admin_password = "${var.vm_admin_pwd}"
   }
 
   os_profile_linux_config {
     # disable_password_authentication = false
     disable_password_authentication = true
     ssh_keys = [{
-      path     = "/home/alis/.ssh/authorized_keys"
+      path     = "/home/${var.vm_admin_user}/.ssh/authorized_keys"
       key_data = "${file("~/.ssh/id_rsa.pub")}"
     }]
   }
@@ -160,14 +163,23 @@ resource "azurerm_virtual_machine" "terraform_rg" {
     environment = "staging"
   }
 
+  connection {
+    type     = "ssh"
+    host     = "terraform-dn.southeastasia.cloudapp.azure.com"
+    user     = "${var.vm_admin_user}"
+    password = "${var.vm_admin_pwd}"
+    #private_key = "${file("~/.ssh/id_rsa.pub")}"
+  }
+
   provisioner "remote-exec" {
     inline = [
-      "sgdisk --new=0:0:0 /dev/sdc",
-      "mkfs.xfs -f /dev/sdc",
+      "printenv",
+      "sudo sgdisk --new=0:0:0 /dev/sdc",
+      "sudo mkfs.xfs -f /dev/sdc",
       "printf '[Unit]\nDescription=Mount for data storage\n[Mount]\nWhat=/dev/sdc\nWhere=/mnt/data\nType=xfs\nOptions=noatime\n[Install]\nWantedBy = multi-user.target \n' | sudo tee /etc/systemd/system/mnt-data.mount",
-      "systemctl start mnt-data.mount",
-      "systemctl start mnt-data.mount",
-      "systemctl enable mnt-data.mount"
+      "sudo systemctl start mnt-data.mount",
+      "sudo systemctl start mnt-data.mount",
+      "sudo systemctl enable mnt-data.mount"
     ]
   }
 }
