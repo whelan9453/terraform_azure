@@ -1,18 +1,23 @@
 # Configure the Azure Provider
 provider "azurerm" { }
 
+variable "rg_name" {default="terraform_vpn"}
+variable "rg_location" {default="South East Asia"}
+variable "env_tag_name" {default="testing"}
+
 # Create a resource group
-resource "azurerm_resource_group" "terraform_rg" {
-  name     = "terraform_WeiLun"
-  location = "South East Asia"
+resource "azurerm_resource_group" "rg" {
+  name     = "${var.rg_name}"
+  location = "${var.rg_location}"
 }
 
+variable "vnet_name" {default="terrafrom-vnet"}
 # Create a virtual network within the resource group
-resource "azurerm_virtual_network" "terraform_rg" {
-  name                = "terraform-network"
+resource "azurerm_virtual_network" "vn" {
+  name                = "${var.vnet_name}"
   address_space       = ["10.0.0.0/16"]
-  location            = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name = "${azurerm_resource_group.terraform_rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
 
   #subnet {
   #  name           = "subnet"
@@ -20,30 +25,30 @@ resource "azurerm_virtual_network" "terraform_rg" {
   #}
 }
 
-resource "azurerm_subnet" "terraform_rg" {
+resource "azurerm_subnet" "subnet" {
   name                 = "terraform_subnet"
-  resource_group_name  = "${azurerm_resource_group.terraform_rg.name}"
-  virtual_network_name = "${azurerm_virtual_network.terraform_rg.name}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  virtual_network_name = "${azurerm_virtual_network.vn.name}"
   address_prefix       = "10.0.0.0/24"
 }
 
-resource "azurerm_public_ip" "terraform_rg" {
+resource "azurerm_public_ip" "pubip" {
   name                         = "terraform-ip"
-  location                     = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name          = "${azurerm_resource_group.terraform_rg.name}"
+  location                     = "${azurerm_resource_group.rg.location}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "Dynamic"
   idle_timeout_in_minutes      = 30
   domain_name_label            = "terraform-dn"
 
   tags {
-    environment = "staging"
+    environment = "${var.env_tag_name}"
   }
 }
 
-resource "azurerm_network_security_group" "terraform_rg" {
+resource "azurerm_network_security_group" "nsg" {
   name                = "terraform_security_group"
-  location            = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name = "${azurerm_resource_group.terraform_rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
 
   security_rule {
     name                       = "default-ssh"
@@ -70,41 +75,43 @@ resource "azurerm_network_security_group" "terraform_rg" {
   }
 
   tags {
-    environment = "staging"
+    environment = "${var.env_tag_name}"
   }
 }
 
-resource "azurerm_network_interface" "terraform_rg" {
+resource "azurerm_network_interface" "netface" {
   name                = "terraform_net_interface"
-  location            = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name = "${azurerm_resource_group.terraform_rg.name}"
-  network_security_group_id = "${azurerm_network_security_group.terraform_rg.id}"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.nsg.id}"
 
   ip_configuration {
     name                          = "terraform_ip_conf"
-    subnet_id                     = "${azurerm_subnet.terraform_rg.id}"
+    subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${azurerm_public_ip.terraform_rg.id}"
+    public_ip_address_id          = "${azurerm_public_ip.pubip.id}"
   }
 }
 
-resource "azurerm_managed_disk" "terraform_rg" {
+resource "azurerm_managed_disk" "mandisk" {
   name                 = "terraform_datadisk_existing"
-  location             = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name  = "${azurerm_resource_group.terraform_rg.name}"
+  location             = "${azurerm_resource_group.rg.location}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
   storage_account_type = "Premium_LRS"
   create_option        = "Empty"
   disk_size_gb         = "260"
 }
 
-variable "vm_admin_user" {}
+variable "vm_admin_user" {default="openvpn"}
 variable "vm_admin_pwd" {}
+variable "vm_name" {default="terraform_vpn"}
+variable "os_computer_name" {default="megatron"}
 
-resource "azurerm_virtual_machine" "terraform_rg" {
-  name                  = "terraform_vm"
-  location              = "${azurerm_resource_group.terraform_rg.location}"
-  resource_group_name   = "${azurerm_resource_group.terraform_rg.name}"
-  network_interface_ids = ["${azurerm_network_interface.terraform_rg.id}"]
+resource "azurerm_virtual_machine" "vm" {
+  name                  = "${var.vm_name}"
+  location              = "${azurerm_resource_group.rg.location}"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  network_interface_ids = ["${azurerm_network_interface.netface.id}"]
   vm_size               = "Standard_DS1_v2"
 
   # Uncomment this line to delete the OS disk automatically when deleting the VM
@@ -121,7 +128,7 @@ resource "azurerm_virtual_machine" "terraform_rg" {
   }
 
   storage_os_disk {
-    name              = "terraform-os-disk"
+    name              = "os-disk"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Premium_LRS"
@@ -137,15 +144,15 @@ resource "azurerm_virtual_machine" "terraform_rg" {
   # }
 
   storage_data_disk {
-    name            = "${azurerm_managed_disk.terraform_rg.name}"
-    managed_disk_id = "${azurerm_managed_disk.terraform_rg.id}"
+    name            = "${azurerm_managed_disk.mandisk.name}"
+    managed_disk_id = "${azurerm_managed_disk.mandisk.id}"
     create_option   = "Attach"
     lun             = 0
-    disk_size_gb    = "${azurerm_managed_disk.terraform_rg.disk_size_gb}"
+    disk_size_gb    = "${azurerm_managed_disk.mandisk.disk_size_gb}"
   }
 
   os_profile {
-    computer_name  = "terraform-vpn"
+    computer_name  = "${var.os_computer_name}"
     admin_username = "${var.vm_admin_user}"
     admin_password = "${var.vm_admin_pwd}"
   }
@@ -160,7 +167,7 @@ resource "azurerm_virtual_machine" "terraform_rg" {
   }
 
   tags {
-    environment = "staging"
+    environment = "${var.env_tag_name}"
   }
 
   connection {
@@ -173,7 +180,7 @@ resource "azurerm_virtual_machine" "terraform_rg" {
 
   provisioner "remote-exec" {
     inline = [
-      "printenv",
+      "printf 'starting mounting data disk...'",
       "sudo sgdisk --new=0:0:0 /dev/sdc",
       "sudo mkfs.xfs -f /dev/sdc",
       "printf '[Unit]\nDescription=Mount for data storage\n[Mount]\nWhat=/dev/sdc\nWhere=/mnt/data\nType=xfs\nOptions=noatime\n[Install]\nWantedBy = multi-user.target \n' | sudo tee /etc/systemd/system/mnt-data.mount",
