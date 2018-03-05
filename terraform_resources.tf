@@ -178,15 +178,79 @@ resource "azurerm_virtual_machine" "vm" {
     #private_key = "${file("~/.ssh/id_rsa.pub")}"
   }
 
+  #provisioner "file" {
+  #  source      = "scripts/post_install.sh"
+  #  destination = "/tmp/post_install.sh"
+  #}
+
   provisioner "remote-exec" {
     inline = [
-      "printf 'starting mounting data disk...'",
+      "printf 'Starting mounting data disk...\n'",
       "sudo sgdisk --new=0:0:0 /dev/sdc",
       "sudo mkfs.xfs -f /dev/sdc",
       "printf '[Unit]\nDescription=Mount for data storage\n[Mount]\nWhat=/dev/sdc\nWhere=/mnt/data\nType=xfs\nOptions=noatime\n[Install]\nWantedBy = multi-user.target \n' | sudo tee /etc/systemd/system/mnt-data.mount",
       "sudo systemctl start mnt-data.mount",
-      "sudo systemctl start mnt-data.mount",
-      "sudo systemctl enable mnt-data.mount"
+      "sudo systemctl enable mnt-data.mount",
+      "printf 'starting setting up open vpn...'",
+      "printf 'Step 1: Install OpenVPN\n'",
+      "sudo apt-get update",
+      "sudo apt-get -y install openvpn easy-rsa",
+      "printf 'Step 2: Set Up the CA Directory\n'",
+      "make-cadir ~/openvpn-ca",
+      "cd ~/openvpn-ca",
+      "printf 'Step 3: Configure the CA Variables\n'",
+      "sed -i -e 's/KEY_COUNTRY=\"US\"/KEY_COUNTRY=\"TW\"/g' vars",
+      "sed -i -e 's/KEY_PROVINCE=\"CA\"/KEY_PROVINCE=\"TW\"/g' vars",
+      "sed -i -e 's/KEY_CITY=\"SanFrancisco\"/KEY_CITY=\"Taipei\"/g' vars",
+      "sed -i -e 's/KEY_ORG=\"Fort-Funston\"/KEY_ORG=\"ASUS\"/g' vars",
+      "sed -i -e 's/KEY_EMAIL=\"me@myhost.mydomain\"/KEY_EMAIL=\"wei-lun_ting@asus.com\"/g' vars",
+      "sed -i -e 's/KEY_OU=\"MyOrganizationalUnit\"/KEY_OU=\"AMACS\"/g' vars",
+      "sed -i -e 's/KEY_NAME=\"EasyRSA\"/KEY_NAME=\"amacs-hybrid-vpn-server\"/g' vars",
+      "printf 'Step 4: Build the Certificate Authority\n'",
+      "cd ~/openvpn-ca",
+      "printf 'Current path\n'",
+      "pwd",
+      ". ./vars",
+      "printenv",
+      "./clean-all",
+      "sed -i -e 's/--interact//g' build-ca",
+      "./build-ca",
+      "printf 'Step 5: Create the Server Certificate, Key, and Encryption Files\n'",
+      "sed -i -e 's/--interact//g' build-key-server",
+      "./build-key-server amacs-hybrid-vpn-server",
+      "./build-dh",
+      "openvpn --genkey --secret keys/ta.key",
+      "printf 'Step 6: Generate a Client Certificate and Key Pair\n'",
+      ". ~/openvpn-ca/vars",
+      "cd ~/openvpn-ca",
+      "sed -i -e 's/--interact//g' build-key",
+      "./build-key amacs-hybrid-vpn-client",
+      "printf 'Step 7: Configure the OpenVPN Service\n'",
+      "cd ~/openvpn-ca/keys",
+      "sudo cp ca.crt amacs-hybrid-vpn-server.crt amacs-hybrid-vpn-server.key ta.key dh2048.pem /etc/openvpn",
+      "gunzip -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz | sudo tee /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i -e 's/;tls-auth/tls-auth/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i '/tls-auth/a key-direction 0' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i -e 's/;cipher AES-128-CBC/cipher AES-128-CBC/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i '/cipher AES-128-CBC/a auth SHA256' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i -e 's/;user nobody/user nobody/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i -e 's/;group nogroup/group nogroup/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "printf 'Step 8: Adjust the Server Networking Configuration\n'",
+      "sudo sed -i -e's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf",
+      "sudo sysctl -p",
+      "PUB_FACE_NAME=`ip route | grep default | cut -d' ' -f5`",
+      "sudo sed -i -e '/#   ufw-before-forward/a #START OPENVPN RULES\n#NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0]\n#Allow traffic from OpenVPN client to eth0\n-A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE\nCOMMIT\n# END OPENVPN RULES\n' /etc/ufw/before.rules",
+      "sudo sed -i 's/DEFAULT_FORWARD_POLICY=\"DROP\"/DEFAULT_FORWARD_POLICY=\"ACCEPT\"/g' /etc/default/ufw",
+      "sudo ufw allow 1194/udp",
+      "sudo ufw allow OpenSSH",
+      "sudo ufw disable",
+      "sudo ufw --force enable",
+      "printf 'Step 9: Start and Enable the OpenVPN Service\n'",
+      "sudo sed -i -e's/cert server.crt/cert amacs-hybrid-vpn-server.crt/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i -e's/key server.key/key amacs-hybrid-vpn-server.key/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo systemctl start openvpn@amacs-hybrid-vpn-server",
+      "ip addr show tun0",
+      "sudo systemctl enable openvpn@amacs-hybrid-vpn-server"
     ]
   }
 }
