@@ -32,15 +32,15 @@ resource "azurerm_subnet" "subnet" {
   address_prefix       = "10.0.0.0/24"
 }
 
-variable "pubip_name" {default="open_vpn_client_ip"}
-variable "domain-label" {}
+variable "pubip_name" {default="open_vpn_server_ip"}
+variable "domain_label" {}
 resource "azurerm_public_ip" "pubip" {
-  name                         = "${pupip_name}"
+  name                         = "${var.pubip_name}"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "Dynamic"
   idle_timeout_in_minutes      = 30
-  domain_name_label            = "${domain-label}"
+  domain_name_label            = "${var.domain_label}"
 
   tags {
     environment = "${var.env_tag_name}"
@@ -107,7 +107,11 @@ resource "azurerm_managed_disk" "mandisk" {
 variable "vm_admin_user" {default="openvpn"}
 variable "vm_admin_pwd" {}
 variable "vm_name" {default="terraform_vpn"}
-variable "os_computer_name" {default="megatron"}
+
+variable "ovpn_svr_uname" {}
+variable "ovpn_svr_domain_or_ip" {}
+variable "ovpn_cli_cfg_name" {}
+#variable "os_computer_name" {default="megatron"}
 
 resource "azurerm_virtual_machine" "vm" {
   name                  = "${var.vm_name}"
@@ -154,7 +158,7 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   os_profile {
-    computer_name  = "${var.os_computer_name}"
+    computer_name  = "${var.domain_label}"
     admin_username = "${var.vm_admin_user}"
     admin_password = "${var.vm_admin_pwd}"
   }
@@ -174,7 +178,7 @@ resource "azurerm_virtual_machine" "vm" {
 
   connection {
     type     = "ssh"
-    host     = "terraform-dn.southeastasia.cloudapp.azure.com"
+    host     = "${var.domain_label}.southeastasia.cloudapp.azure.com"
     user     = "${var.vm_admin_user}"
     password = "${var.vm_admin_pwd}"
     #private_key = "${file("~/.ssh/id_rsa.pub")}"
@@ -196,7 +200,8 @@ resource "azurerm_virtual_machine" "vm" {
       "printf 'starting setting up open vpn...'",
       "printf 'Step 12: Install the Client Configuration\n'",
       "sudo apt-get update",
-      "sudo apt-get -y install openvpn"
+      "sudo apt-get -y install openvpn",
+      "sftp ${$var.ovpn_svr_uname}@{var.ovpn_svr_domain_or_ip}:client-configs/files/${var.ovpn_cli_cfg_name}.ovpn ~/"
     ]
   }
 }
