@@ -1,7 +1,7 @@
 # Configure the Azure Provider
 provider "azurerm" { }
 
-variable "rg_name" {default="terraform_vpn"}
+variable "rg_name" {default="terraform_open_vpn_server"}
 variable "rg_location" {default="South East Asia"}
 variable "env_tag_name" {default="testing"}
 
@@ -272,16 +272,16 @@ resource "azurerm_virtual_machine" "vm" {
       "echo 'OUTPUT_DIR=~/client-configs/files' >> ~/client-configs/make_config.sh",
       "echo 'BASE_CONFIG=~/client-configs/base.conf' >> ~/client-configs/make_config.sh",
       "echo 'cat $${BASE_CONFIG} \\' >> ~/client-configs/make_config.sh",
-      "echo \"<(echo -e '<ca>') \\\\\" >> ~/client-configs/make_config.sh",
-      "echo '$${KEY_DIR}/ca.crt \\' >> ~/client-configs/make_config.sh",
-      "echo \"<(echo -e '</ca>\n<cert>') \\\\\" >> ~/client-configs/make_config.sh",
-      "echo '$${KEY_DIR}/${1}.crt \\' >> ~/client-configs/make_config.sh",
-      "echo \"<(echo -e '</cert>\n<key>') \\\\\" >> ~/client-configs/make_config.sh",
-      "echo '$${KEY_DIR}/${1}.key \\' >> ~/client-configs/make_config.sh",
-      "echo \"<(echo -e '</key>\n<tls-auth>') \\\\\" >> ~/client-configs/make_config.sh",
-      "echo '$${KEY_DIR}/ta.key \\' >> ~/client-configs/make_config.sh",
-      "echo \"<(echo -e '</tls-auth>') \\\\\" >> ~/client-configs/make_config.sh",
-      "echo '$${OUTPUT_DIR}/${1}.ovpn' >> ~/client-configs/make_config.sh",
+      "echo \"    <(echo -e '<ca>') \\\\\" >> ~/client-configs/make_config.sh",
+      "echo '    $${KEY_DIR}/ca.crt \\' >> ~/client-configs/make_config.sh",
+      "echo \"    <(echo -e '</ca>\\\\n<cert>') \\\\\" >> ~/client-configs/make_config.sh",
+      "echo '    $${KEY_DIR}/$${1}.crt \\' >> ~/client-configs/make_config.sh",
+      "echo \"    <(echo -e '</cert>\\\\n<key>') \\\\\" >> ~/client-configs/make_config.sh",
+      "echo '    $${KEY_DIR}/$${1}.key \\' >> ~/client-configs/make_config.sh",
+      "echo \"    <(echo -e '</key>\\\\n<tls-auth>') \\\\\" >> ~/client-configs/make_config.sh",
+      "echo '    $${KEY_DIR}/ta.key \\' >> ~/client-configs/make_config.sh",
+      "echo \"    <(echo -e '</tls-auth>') \\\\\" >> ~/client-configs/make_config.sh",
+      "echo '    >$${OUTPUT_DIR}/$${1}.ovpn' >> ~/client-configs/make_config.sh",
       "chmod 700 ~/client-configs/make_config.sh",
       "printf 'Step 11: Generate Client Configurations\n'",
       "cd ~/client-configs",
