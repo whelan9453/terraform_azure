@@ -32,13 +32,15 @@ resource "azurerm_subnet" "subnet" {
   address_prefix       = "10.0.0.0/24"
 }
 
+variable "pubip_name" {default="open_vpn_server_ip"}
+variable "domain-label" {}
 resource "azurerm_public_ip" "pubip" {
-  name                         = "terraform-ip"
+  name                         = "${pupip_name}"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "Dynamic"
   idle_timeout_in_minutes      = 30
-  domain_name_label            = "terraform-dn"
+  domain_name_label            = "${domain-label}"
 
   tags {
     environment = "${var.env_tag_name}"
