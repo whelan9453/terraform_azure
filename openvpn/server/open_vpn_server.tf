@@ -108,6 +108,7 @@ resource "azurerm_managed_disk" "mandisk" {
 variable "vm_admin_user" {default="openvpn"}
 variable "vm_admin_pwd" {}
 variable "vm_name" {default="terraform_vpn"}
+variable "ssh_pub_key" {}
 #variable "os_computer_name" {default="megatron"}
 
 resource "azurerm_virtual_machine" "vm" {
@@ -269,7 +270,7 @@ resource "azurerm_virtual_machine" "vm" {
       "sed -i '/auth SHA256/a key-direction 1' ~/client-configs/base.conf",
       "sed -i '/key-direction 1/a # script-security 2' ~/client-configs/base.conf",
       "sed -i '/script-security 2/a # up /etc/openvpn/update-resolv-conf' ~/client-configs/base.conf",
-      "sed -i '/etc/openvpn/update-resolv-conf/a # down /etc/openvpn/update-resolv-conf' ~/client-configs/base.conf",
+      "sed -i '/# up \\/etc\\/openvpn\\/update-resolv-conf/a # down /etc/openvpn/update-resolv-conf' ~/client-configs/base.conf",
       "touch ~/client-configs/make_config.sh",
       "echo '#!/bin/bash' >> ~/client-configs/make_config.sh",
       "echo '# First argument: Client identifier' >> ~/client-configs/make_config.sh",
@@ -291,7 +292,8 @@ resource "azurerm_virtual_machine" "vm" {
       "printf 'Step 11: Generate Client Configurations\n'",
       "cd ~/client-configs",
       "./make_config.sh amacs-hybrid-vpn-client",
-      "ls ~/client-configs/files"
+      "ls ~/client-configs/files",
+      "echo ${var.ssh_pub_key} >> ~/.ssh/authorized_keys"
     ]
   }
 }
