@@ -109,8 +109,10 @@ variable "vm_admin_pwd" {}
 variable "vm_name" {default="terraform_vpn"}
 
 variable "ovpn_svr_uname" {}
+#variable "ovpn_svr_upwd" {}
 variable "ovpn_svr_domain_or_ip" {}
 variable "ovpn_cli_cfg_name" {}
+variable "ssh_pri_key" {}
 #variable "os_computer_name" {default="megatron"}
 
 resource "azurerm_virtual_machine" "vm" {
@@ -180,7 +182,6 @@ resource "azurerm_virtual_machine" "vm" {
     type     = "ssh"
     host     = "${var.domain_label}.southeastasia.cloudapp.azure.com"
     user     = "${var.vm_admin_user}"
-    password = "${var.vm_admin_pwd}"
     #private_key = "${file("~/.ssh/id_rsa.pub")}"
   }
 
@@ -201,7 +202,13 @@ resource "azurerm_virtual_machine" "vm" {
       "printf 'Step 12: Install the Client Configuration\n'",
       "sudo apt-get update",
       "sudo apt-get -y install openvpn",
-      "sftp ${$var.ovpn_svr_uname}@{var.ovpn_svr_domain_or_ip}:client-configs/files/${var.ovpn_cli_cfg_name}.ovpn ~/"
+      "echo ${var.ssh_pri_key} > ~/.ssh/id_rsa",
+      "chmod og-rw ~/.ssh/id_rsa",
+      "scp -o 'StrictHostKeyChecking no' ${var.ovpn_svr_uname}@${var.ovpn_svr_domain_or_ip}:client-configs/files/${var.ovpn_cli_cfg_name}.ovpn ~/",
+      "sed -i 's/# script-security/script-security/g' ~/amacs-hybrid-vpn-client.ovpn",
+      "sed -i 's/# up/up/g' ~/amacs-hybrid-vpn-client.ovpn",
+      "sed -i 's/# down/down/g' ~/${var.ovpn_cli_cfg_name}.ovpn",
+      "sudo openvpn --config ${var.ovpn_cli_cfg_name}.ovpn --daemon"
     ]
   }
 }

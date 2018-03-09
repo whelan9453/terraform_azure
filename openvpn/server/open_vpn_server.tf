@@ -2,7 +2,8 @@
 provider "azurerm" { }
 
 variable "rg_name" {default="terraform_open_vpn_server"}
-variable "rg_location" {default="South East Asia"}
+#variable "rg_location" {default="South East Asia"}
+variable "rg_location" {default="southeastasia"}
 variable "env_tag_name" {default="testing"}
 
 # Create a resource group
@@ -257,7 +258,7 @@ resource "azurerm_virtual_machine" "vm" {
       "mkdir -p ~/client-configs/files",
       "chmod 700 ~/client-configs/files",
       "cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf ~/client-configs/base.conf",
-      "sed -i 's/remote my-server-1 1194/remote terraform-dn.southeastasia.cloudapp.azure.com 1194/g' ~/client-configs/base.conf",
+      "sed -i 's/remote my-server-1 1194/remote ${var.domain_label}.${var.rg_location}.cloudapp.azure.com 1194/g' ~/client-configs/base.conf",
       "sed -i 's/;user nobody/user nobody/g' ~/client-configs/base.conf",
       "sed -i 's/;group nogroup/group nogroup/g' ~/client-configs/base.conf",
       "sed -i 's/ca ca.crt/#ca ca.crt/g' ~/client-configs/base.conf",
@@ -266,7 +267,9 @@ resource "azurerm_virtual_machine" "vm" {
       "sed -i 's/;cipher x/cipher AES-128-CBC/g' ~/client-configs/base.conf",
       "sed -i '/cipher AES-128-CBC/a auth SHA256' ~/client-configs/base.conf",
       "sed -i '/auth SHA256/a key-direction 1' ~/client-configs/base.conf",
-      "sed -i '/key-direction 1/a # script-security 2\n# up /etc/openvpn/update-resolv-conf\n# down /etc/openvpn/update-resolv-conf' ~/client-configs/base.conf",
+      "sed -i '/key-direction 1/a # script-security 2' ~/client-configs/base.conf",
+      "sed -i '/script-security 2/a # up /etc/openvpn/update-resolv-conf' ~/client-configs/base.conf",
+      "sed -i '/etc/openvpn/update-resolv-conf/a # down /etc/openvpn/update-resolv-conf' ~/client-configs/base.conf",
       "touch ~/client-configs/make_config.sh",
       "echo '#!/bin/bash' >> ~/client-configs/make_config.sh",
       "echo '# First argument: Client identifier' >> ~/client-configs/make_config.sh",
