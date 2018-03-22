@@ -5,6 +5,8 @@ variable "rg_name" {default="terraform_open_vpn_client"}
 variable "rg_location" {default="South East Asia"}
 variable "env_tag_name" {default="testing"}
 
+variable "rc_count" {}
+
 # Create a resource group
 resource "azurerm_resource_group" "rg" {
   name     = "${var.rg_name}"
@@ -35,12 +37,13 @@ resource "azurerm_subnet" "subnet" {
 variable "pubip_name" {default="open_vpn_server_ip"}
 variable "domain_label" {}
 resource "azurerm_public_ip" "pubip" {
-  name                         = "${var.pubip_name}"
+  count                        = "${var.rc_count}"
+  name                         = "${var.pubip_name}${count.index}"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "Dynamic"
   idle_timeout_in_minutes      = 30
-  domain_name_label            = "${var.domain_label}"
+  domain_name_label            = "${var.domain_label}${count.index}"
 
   tags {
     environment = "${var.env_tag_name}"
@@ -82,7 +85,8 @@ resource "azurerm_network_security_group" "nsg" {
 }
 
 resource "azurerm_network_interface" "netface" {
-  name                = "terraform_net_interface"
+  count               = "${var.rc_count}"
+  name                = "terraform_net_interface_${count.index}"
   location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.nsg.id}"
@@ -91,15 +95,16 @@ resource "azurerm_network_interface" "netface" {
     name                          = "terraform_ip_conf"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${azurerm_public_ip.pubip.id}"
+    public_ip_address_id          = "${element(azurerm_public_ip.pubip.*.id, count.index)}"
   }
 }
 
 resource "azurerm_managed_disk" "mandisk" {
-  name                 = "terraform_datadisk_existing"
+  count                = "${var.rc_count}"
+  name                 = "datadisk_existing_${count.index}"
   location             = "${azurerm_resource_group.rg.location}"
   resource_group_name  = "${azurerm_resource_group.rg.name}"
-  storage_account_type = "Premium_LRS"
+  storage_account_type = "Standard_LRS"
   create_option        = "Empty"
   disk_size_gb         = "260"
 }
@@ -116,10 +121,11 @@ variable "ssh_pri_key" {}
 #variable "os_computer_name" {default="megatron"}
 
 resource "azurerm_virtual_machine" "vm" {
-  name                  = "${var.vm_name}"
+  count                 = "${var.rc_count}"
+  name                  = "${var.vm_name}${count.index}"
   location              = "${azurerm_resource_group.rg.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
-  network_interface_ids = ["${azurerm_network_interface.netface.id}"]
+  network_interface_ids = ["${element(azurerm_network_interface.netface.*.id, count.index)}"]
   vm_size               = "Standard_DS1_v2"
 
   # Uncomment this line to delete the OS disk automatically when deleting the VM
@@ -136,27 +142,26 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   storage_os_disk {
-    name              = "os-disk"
+    name              = "os-disk${count.index}"
     caching           = "ReadWrite"
     create_option     = "FromImage"
-    managed_disk_type = "Premium_LRS"
+    managed_disk_type = "Standard_LRS"
   }
 
-  # Optional data disks
   # storage_data_disk {
-  #   name              = "datadisk_new"
+  #   name              = "datadisk_new_${count.index}"
   #   managed_disk_type = "Standard_LRS"
   #   create_option     = "Empty"
   #   lun               = 0
-  #   disk_size_gb      = "1023"
+  #   disk_size_gb      = "260"
   # }
 
   storage_data_disk {
-    name            = "${azurerm_managed_disk.mandisk.name}"
-    managed_disk_id = "${azurerm_managed_disk.mandisk.id}"
+    name            = "${element(azurerm_managed_disk.mandisk.*.name, count.index)}"
+    managed_disk_id = "${element(azurerm_managed_disk.mandisk.*.id, count.index)}"
     create_option   = "Attach"
     lun             = 0
-    disk_size_gb    = "${azurerm_managed_disk.mandisk.disk_size_gb}"
+    disk_size_gb    = "${element(azurerm_managed_disk.mandisk.*.disk_size_gb, count.index)}"
   }
 
   os_profile {
@@ -180,7 +185,7 @@ resource "azurerm_virtual_machine" "vm" {
 
   connection {
     type     = "ssh"
-    host     = "${var.domain_label}.southeastasia.cloudapp.azure.com"
+    host     = "${var.domain_label}${count.index}.southeastasia.cloudapp.azure.com"
     user     = "${var.vm_admin_user}"
     #private_key = "${file("~/.ssh/id_rsa.pub")}"
   }
@@ -204,11 +209,11 @@ resource "azurerm_virtual_machine" "vm" {
       "sudo apt-get -y install openvpn",
       "echo ${var.ssh_pri_key} > ~/.ssh/id_rsa",
       "chmod og-rw ~/.ssh/id_rsa",
-      "scp -o 'StrictHostKeyChecking no' ${var.ovpn_svr_uname}@${var.ovpn_svr_domain_or_ip}:client-configs/files/${var.ovpn_cli_cfg_name}.ovpn ~/",
-      "sed -i 's/# script-security/script-security/g' ~/amacs-hybrid-vpn-client.ovpn",
+      "scp -o 'StrictHostKeyChecking no' ${var.ovpn_svr_uname}@${var.ovpn_svr_domain_or_ip}:client-configs/files/${var.ovpn_cli_cfg_name}${count.index}.ovpn ~/",
+      "sed -i 's/# script-security/script-security/g' ~/${var.ovpn_cli_cfg_name}${count.index}.ovpn",
       "sed -i 's/# up/up/g' ~/amacs-hybrid-vpn-client.ovpn",
       "sed -i 's/# down/down/g' ~/${var.ovpn_cli_cfg_name}.ovpn",
-      "sudo openvpn --config ${var.ovpn_cli_cfg_name}.ovpn --daemon"
+      "sudo openvpn --config ${var.ovpn_cli_cfg_name}${count.index}.ovpn --daemon"
     ]
   }
 }

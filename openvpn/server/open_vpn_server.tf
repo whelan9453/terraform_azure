@@ -6,6 +6,8 @@ variable "rg_name" {default="terraform_open_vpn_server"}
 variable "rg_location" {default="southeastasia"}
 variable "env_tag_name" {default="testing"}
 
+variable "rc_count" {}
+
 # Create a resource group
 resource "azurerm_resource_group" "rg" {
   name     = "${var.rg_name}"
@@ -228,7 +230,8 @@ resource "azurerm_virtual_machine" "vm" {
       ". ~/openvpn-ca/vars",
       "cd ~/openvpn-ca",
       "sed -i -e 's/--interact//g' build-key",
-      "./build-key amacs-hybrid-vpn-client",
+      "./build-key amacs-hybrid-vpn-client0",
+      "./build-key amacs-hybrid-vpn-client1",
       "printf 'Step 7: Configure the OpenVPN Service\n'",
       "cd ~/openvpn-ca/keys",
       "sudo cp ca.crt amacs-hybrid-vpn-server.crt amacs-hybrid-vpn-server.key ta.key dh2048.pem /etc/openvpn",
@@ -291,7 +294,8 @@ resource "azurerm_virtual_machine" "vm" {
       "chmod 700 ~/client-configs/make_config.sh",
       "printf 'Step 11: Generate Client Configurations\n'",
       "cd ~/client-configs",
-      "./make_config.sh amacs-hybrid-vpn-client",
+      "./make_config.sh amacs-hybrid-vpn-client0",
+      "./make_config.sh amacs-hybrid-vpn-client1",
       "ls ~/client-configs/files",
       "echo ${var.ssh_pub_key} >> ~/.ssh/authorized_keys"
     ]
