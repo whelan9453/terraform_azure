@@ -230,8 +230,7 @@ resource "azurerm_virtual_machine" "vm" {
       ". ~/openvpn-ca/vars",
       "cd ~/openvpn-ca",
       "sed -i -e 's/--interact//g' build-key",
-      "./build-key amacs-hybrid-vpn-client0",
-      "./build-key amacs-hybrid-vpn-client1",
+      "for i in `seq 0 ${var.rc_count}`; do ./build-key amacs-hybrid-vpn-client$$i; done",
       "printf 'Step 7: Configure the OpenVPN Service\n'",
       "cd ~/openvpn-ca/keys",
       "sudo cp ca.crt amacs-hybrid-vpn-server.crt amacs-hybrid-vpn-server.key ta.key dh2048.pem /etc/openvpn",
@@ -294,8 +293,7 @@ resource "azurerm_virtual_machine" "vm" {
       "chmod 700 ~/client-configs/make_config.sh",
       "printf 'Step 11: Generate Client Configurations\n'",
       "cd ~/client-configs",
-      "./make_config.sh amacs-hybrid-vpn-client0",
-      "./make_config.sh amacs-hybrid-vpn-client1",
+      "for i in `seq 0 ${var.rc_count}`; do ./make_config.sh amacs-hybrid-vpn-client$$i; done",
       "ls ~/client-configs/files",
       "echo ${var.ssh_pub_key} >> ~/.ssh/authorized_keys"
     ]
