@@ -1,10 +1,28 @@
-# Configure the Azure Provider
-provider "azurerm" { }
+variable "azure_sub_id" {}
+variable "azure_cli_id" {}
+variable "azure_cli_secret" {}
+variable "azure_tenant_id" {}
 
-variable "rg_name" {default="terraform_open_vpn_server"}
+# Configure the Azure Provider
+provider "azurerm" {
+  subscription_id = "${var.azure_sub_id}"
+  client_id       = "${var.azure_cli_id}"
+  client_secret   = "${var.azure_cli_secret}"
+  tenant_id       = "${var.azure_tenant_id}"
+}
+
+variable "rg_name" {
+  default = "terraform_open_vpn_server"
+}
+
 #variable "rg_location" {default="South East Asia"}
-variable "rg_location" {default="southeastasia"}
-variable "env_tag_name" {default="testing"}
+variable "rg_location" {
+  default = "southeastasia"
+}
+
+variable "env_tag_name" {
+  default = "testing"
+}
 
 variable "rc_count" {}
 
@@ -14,7 +32,10 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.rg_location}"
 }
 
-variable "vnet_name" {default="terrafrom-vnet"}
+variable "vnet_name" {
+  default = "terrafrom-vnet"
+}
+
 # Create a virtual network within the resource group
 resource "azurerm_virtual_network" "vn" {
   name                = "${var.vnet_name}"
@@ -35,8 +56,12 @@ resource "azurerm_subnet" "subnet" {
   address_prefix       = "10.0.0.0/24"
 }
 
-variable "pubip_name" {default="open_vpn_server_ip"}
+variable "pubip_name" {
+  default = "open_vpn_server_ip"
+}
+
 variable "domain_label" {}
+
 resource "azurerm_public_ip" "pubip" {
   name                         = "${var.pubip_name}"
   location                     = "${azurerm_resource_group.rg.location}"
@@ -85,9 +110,9 @@ resource "azurerm_network_security_group" "nsg" {
 }
 
 resource "azurerm_network_interface" "netface" {
-  name                = "terraform_net_interface"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+  name                      = "terraform_net_interface"
+  location                  = "${azurerm_resource_group.rg.location}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.nsg.id}"
 
   ip_configuration {
@@ -107,10 +132,18 @@ resource "azurerm_managed_disk" "mandisk" {
   disk_size_gb         = "260"
 }
 
-variable "vm_admin_user" {default="openvpn"}
+variable "vm_admin_user" {
+  default = "openvpn"
+}
+
 variable "vm_admin_pwd" {}
-variable "vm_name" {default="terraform_vpn"}
+
+variable "vm_name" {
+  default = "terraform_vpn"
+}
+
 variable "ssh_pub_key" {}
+
 #variable "os_computer_name" {default="megatron"}
 
 resource "azurerm_virtual_machine" "vm" {
@@ -123,6 +156,7 @@ resource "azurerm_virtual_machine" "vm" {
   # Uncomment this line to delete the OS disk automatically when deleting the VM
   # delete_os_disk_on_termination = true
 
+
   # Uncomment this line to delete the data disks automatically when deleting the VM
   # delete_data_disks_on_termination = true
 
@@ -132,7 +166,6 @@ resource "azurerm_virtual_machine" "vm" {
     sku       = "16.04-LTS"
     version   = "latest"
   }
-
   storage_os_disk {
     name              = "os-disk"
     caching           = "ReadWrite"
@@ -156,31 +189,29 @@ resource "azurerm_virtual_machine" "vm" {
     lun             = 0
     disk_size_gb    = "${azurerm_managed_disk.mandisk.disk_size_gb}"
   }
-
   os_profile {
     computer_name  = "${var.domain_label}"
     admin_username = "${var.vm_admin_user}"
     admin_password = "${var.vm_admin_pwd}"
   }
-
   os_profile_linux_config {
     # disable_password_authentication = false
     disable_password_authentication = true
+
     ssh_keys = [{
       path     = "/home/${var.vm_admin_user}/.ssh/authorized_keys"
       key_data = "${file("~/.ssh/id_rsa.pub")}"
     }]
   }
-
   tags {
     environment = "${var.env_tag_name}"
   }
-
   connection {
     type     = "ssh"
     host     = "${var.domain_label}.southeastasia.cloudapp.azure.com"
     user     = "${var.vm_admin_user}"
     password = "${var.vm_admin_pwd}"
+
     #private_key = "${file("~/.ssh/id_rsa.pub")}"
   }
 
@@ -295,7 +326,7 @@ resource "azurerm_virtual_machine" "vm" {
       "cd ~/client-configs",
       "for i in `seq 0 ${var.rc_count}`; do ./make_config.sh amacs-hybrid-vpn-client$$i; done",
       "ls ~/client-configs/files",
-      "echo ${var.ssh_pub_key} >> ~/.ssh/authorized_keys"
+      "echo ${var.ssh_pub_key} >> ~/.ssh/authorized_keys",
     ]
   }
 }
