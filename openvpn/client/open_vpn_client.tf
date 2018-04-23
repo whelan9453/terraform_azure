@@ -4,7 +4,13 @@ variable "azure_cli_secret" {}
 variable "azure_tenant_id" {}
 
 # Configure the Azure Provider
-provider "azurerm" {}
+# Configure the Azure Provider
+provider "azurerm" {
+  subscription_id = "${var.azure_sub_id}"
+  client_id       = "${var.azure_cli_id}"
+  client_secret   = "${var.azure_cli_secret}"
+  tenant_id       = "${var.azure_tenant_id}"
+}
 
 variable "rg_name" {
   default = "terraform_open_vpn_client"
