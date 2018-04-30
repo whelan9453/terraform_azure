@@ -99,7 +99,7 @@ resource "azurerm_network_security_group" "nsg" {
     access                     = "Allow"
     protocol                   = "Udp"
     source_port_range          = "*"
-    destination_port_range     = "1194"
+    destination_port_range     = "9194"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
@@ -278,7 +278,7 @@ resource "azurerm_virtual_machine" "vm" {
       "PUB_FACE_NAME=`ip route | grep default | cut -d' ' -f5`",
       "sudo sed -i -e '/#   ufw-before-forward/a #START OPENVPN RULES\n#NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0]\n#Allow traffic from OpenVPN client to eth0\n-A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE\nCOMMIT\n# END OPENVPN RULES\n' /etc/ufw/before.rules",
       "sudo sed -i 's/DEFAULT_FORWARD_POLICY=\"DROP\"/DEFAULT_FORWARD_POLICY=\"ACCEPT\"/g' /etc/default/ufw",
-      "sudo ufw allow 1194/udp",
+      "sudo ufw allow 9194/udp",
       "sudo ufw allow OpenSSH",
       "sudo ufw disable",
       "sudo ufw --force enable",
@@ -292,7 +292,7 @@ resource "azurerm_virtual_machine" "vm" {
       "mkdir -p ~/client-configs/files",
       "chmod 700 ~/client-configs/files",
       "cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf ~/client-configs/base.conf",
-      "sed -i 's/remote my-server-1 1194/remote ${var.domain_label}.${var.rg_location}.cloudapp.azure.com 1194/g' ~/client-configs/base.conf",
+      "sed -i 's/remote my-server-1 9194/remote ${var.domain_label}.${var.rg_location}.cloudapp.azure.com 9194/g' ~/client-configs/base.conf",
       "sed -i 's/;user nobody/user nobody/g' ~/client-configs/base.conf",
       "sed -i 's/;group nogroup/group nogroup/g' ~/client-configs/base.conf",
       "sed -i 's/ca ca.crt/#ca ca.crt/g' ~/client-configs/base.conf",
