@@ -275,6 +275,7 @@ resource "azurerm_virtual_machine" "vm" {
       "sudo sed -i '/cipher AES-128-CBC/a auth SHA256' /etc/openvpn/amacs-hybrid-vpn-server.conf",
       "sudo sed -i -e 's/;user nobody/user nobody/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
       "sudo sed -i -e 's/;group nogroup/group nogroup/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
+      "sudo sed -i -e 's/port 1194/port 9194/g' /etc/openvpn/amacs-hybrid-vpn-server.conf",
       "printf 'Step 8: Adjust the Server Networking Configuration\n'",
       "sudo sed -i -e's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf",
       "sudo sysctl -p",
