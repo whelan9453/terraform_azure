@@ -295,7 +295,7 @@ resource "azurerm_virtual_machine" "vm" {
       "mkdir -p ~/client-configs/files",
       "chmod 700 ~/client-configs/files",
       "cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf ~/client-configs/base.conf",
-      "sed -i 's/remote my-server-1 9194/remote ${var.domain_label}.${var.rg_location}.cloudapp.azure.com 9194/g' ~/client-configs/base.conf",
+      "sed -i 's/remote my-server-1 1194/remote ${var.domain_label}.${var.rg_location}.cloudapp.azure.com 9194/g' ~/client-configs/base.conf",
       "sed -i 's/;user nobody/user nobody/g' ~/client-configs/base.conf",
       "sed -i 's/;group nogroup/group nogroup/g' ~/client-configs/base.conf",
       "sed -i 's/ca ca.crt/#ca ca.crt/g' ~/client-configs/base.conf",
