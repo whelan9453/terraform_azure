@@ -244,8 +244,8 @@ resource "azurerm_virtual_machine" "vm" {
       "chmod og-rw ~/.ssh/id_rsa",
       "scp -o 'StrictHostKeyChecking no' ${var.ovpn_svr_uname}@${var.ovpn_svr_domain_or_ip}:client-configs/files/${var.ovpn_cli_cfg_name}${count.index}.ovpn ~/",
       "sed -i 's/# script-security/script-security/g' ~/${var.ovpn_cli_cfg_name}${count.index}.ovpn",
-      "sed -i 's/# up/up/g' ~/amacs-hybrid-vpn-client.ovpn",
-      "sed -i 's/# down/down/g' ~/${var.ovpn_cli_cfg_name}.ovpn",
+      "sed -i 's/# up/up/g' ~/${var.ovpn_cli_cfg_name}${count.index}.ovpn",
+      "sed -i 's/# down/down/g' ~/${var.ovpn_cli_cfg_name}${count.index}.ovpn",
       "sudo openvpn --config ${var.ovpn_cli_cfg_name}${count.index}.ovpn --daemon",
     ]
   }
