@@ -194,6 +194,7 @@ resource "azurerm_virtual_machine" "vm" {
     admin_username = "${var.vm_admin_user}"
     admin_password = "${var.vm_admin_pwd}"
   }
+  # NOTE:會直接拿本地的~/.ssh/id_rsa.pub作為連線的依據
   os_profile_linux_config {
     # disable_password_authentication = false
     disable_password_authentication = true
@@ -207,12 +208,13 @@ resource "azurerm_virtual_machine" "vm" {
     environment = "${var.env_tag_name}"
   }
   connection {
-    type     = "ssh"
-    host     = "${var.domain_label}.southeastasia.cloudapp.azure.com"
-    user     = "${var.vm_admin_user}"
-    password = "${var.vm_admin_pwd}"
+    type = "ssh"
+    host = "${var.domain_label}.southeastasia.cloudapp.azure.com"
+    user = "${var.vm_admin_user}"
 
-    #private_key = "${file("~/.ssh/id_rsa.pub")}"
+    # password = "${var.vm_admin_pwd}"
+
+    private_key = "${file("~/.ssh/id_rsa")}"
   }
 
   #provisioner "file" {
@@ -222,6 +224,7 @@ resource "azurerm_virtual_machine" "vm" {
 
   provisioner "remote-exec" {
     inline = [
+      "printf 'https://www.digitalocean.com/community/tutorials/how-to-set-up-an-openvpn-server-on-ubuntu-16-04'",
       "printf 'Starting mounting data disk...\n'",
       "sudo sgdisk --new=0:0:0 /dev/sdc",
       "sudo mkfs.xfs -f /dev/sdc",

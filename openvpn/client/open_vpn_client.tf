@@ -220,7 +220,7 @@ resource "azurerm_virtual_machine" "vm" {
     host = "${var.domain_label}${count.index}.southeastasia.cloudapp.azure.com"
     user = "${var.vm_admin_user}"
 
-    #private_key = "${file("~/.ssh/id_rsa.pub")}"
+    private_key = "${file("~/.ssh/id_rsa")}"
   }
 
   #provisioner "file" {
