@@ -279,7 +279,7 @@ resource "azurerm_virtual_machine" "vm" {
       "sudo sed -i -e's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf",
       "sudo sysctl -p",
       "PUB_FACE_NAME=`ip route | grep default | cut -d' ' -f5`",
-      "sudo sed -i -e '/#   ufw-before-forward/a #START OPENVPN RULES\n#NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0]\n#Allow traffic from OpenVPN client to eth0\n-A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE\nCOMMIT\n# END OPENVPN RULES\n' /etc/ufw/before.rules",
+      "sudo sed -i -e '/#   ufw-before-forward/a #START OPENVPN RULES\n#NAT table rules\n*nat\n:POSTROUTING ACCEPT [0:0]\n#Allow traffic from OpenVPN client to $${PUB_FACE_NAME}\n-A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE\nCOMMIT\n# END OPENVPN RULES\n' /etc/ufw/before.rules",
       "sudo sed -i 's/DEFAULT_FORWARD_POLICY=\"DROP\"/DEFAULT_FORWARD_POLICY=\"ACCEPT\"/g' /etc/default/ufw",
       "sudo ufw allow 9194/udp",
       "sudo ufw allow OpenSSH",
