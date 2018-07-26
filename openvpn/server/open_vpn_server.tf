@@ -17,7 +17,7 @@ variable "rg_name" {
 
 #variable "rg_location" {default="South East Asia"}
 variable "rg_location" {
-  default = "southeastasia"
+  default = "East Asia"
 }
 
 variable "env_tag_name" {
