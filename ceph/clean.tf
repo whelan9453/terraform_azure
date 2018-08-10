@@ -17,7 +17,7 @@ variable "rg_name" {
 }
 
 variable "rg_location" {
-  default = "East Asia"
+  default = "eastasia"
 }
 
 variable "env_tag_name" {
@@ -205,7 +205,7 @@ resource "azurerm_virtual_machine" "vm" {
   }
   connection {
     type = "ssh"
-    host = "${var.domain_label}${count.index}.eastasia.cloudapp.azure.com"
+    host = "${var.domain_label}${count.index}.${var.rg_location}.cloudapp.azure.com"
     user = "${var.vm_admin_user}"
 
     password = "${var.vm_admin_pwd}"
