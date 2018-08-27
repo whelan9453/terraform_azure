@@ -88,6 +88,18 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
+    security_rule {
+    name                       = "ceph"
+    priority                   = 500
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Any"
+    source_port_range          = "*"
+    destination_port_range     = "6800-7300"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
   security_rule {
     name                       = "openVPN"
     priority                   = 1000
@@ -131,7 +143,7 @@ resource "azurerm_managed_disk" "mandisk" {
 }
 
 variable "vm_admin_user" {
-  default = "ceph"
+  default = "amacsceph"
 }
 
 variable "vm_admin_pwd" {}
